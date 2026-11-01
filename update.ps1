@@ -41,7 +41,7 @@ if (-not $AfterPull) {
 }
 
 Step "Restarting containers"
-docker compose up -d --build
+docker compose up -d --build --force-recreate
 if ($LASTEXITCODE -ne 0) { Fail "Docker failed to start (see message above)." }
 docker compose ps
 
