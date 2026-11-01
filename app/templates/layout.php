@@ -23,6 +23,7 @@
 <footer class="wrap muted small">
   Jobs are gathered automatically from public sources. Each post links to its original source.
   Always check the official notification before you apply.
+  <?php if ($section === 'admin'): ?><br>Version <?= h(APP_VERSION) ?><?php endif ?>
 </footer>
 </body>
 </html>

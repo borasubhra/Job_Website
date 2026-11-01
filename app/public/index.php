@@ -75,7 +75,8 @@ try {
             break;
         case $path === '/api/health':
             App\Db::run('SELECT 1');
-            json_out(['status' => 'ok', 'db' => 'connected', 'php' => PHP_VERSION]);
+            json_out(['status' => 'ok', 'db' => 'connected', 'php' => PHP_VERSION, 'version' => APP_VERSION,
+                      'import_files' => count(glob(__DIR__ . '/../imports/*.json') ?: [])]);
             break;
 
         default:

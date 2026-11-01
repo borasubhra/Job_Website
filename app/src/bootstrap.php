@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Increase on every release, so you can check which version is running: /api/health
+const APP_VERSION = '2026-11-01.7 (import page)';
+
 // Autoload App\* classes from src/
 spl_autoload_register(function (string $class): void {
     if (str_starts_with($class, 'App\\')) {
