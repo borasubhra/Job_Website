@@ -40,6 +40,17 @@ final class Admin
             return ['admin/list', ['jobs' => $jobs, 'show' => $show, 'counts' => $counts, 'flash' => self::flash()]];
         }
 
+        if ($path === '/admin/imports') {
+            $results = null;
+            if ($post) {
+                $file = basename((string) ($_POST['file'] ?? ''));
+                $results = $file !== '' ? [Importer::import(Importer::dir() . '/' . $file)] : Importer::importNew();
+            }
+            $sources = Db::run("SELECT section, source_name, count(*) FILTER (WHERE is_active) live, count(*) FILTER (WHERE NOT is_active) hidden
+                                  FROM listings GROUP BY 1, 2 ORDER BY 1 DESC, 3 DESC")->fetchAll();
+            return ['admin/imports', ['files' => Importer::files(), 'results' => $results, 'sources' => $sources, 'dir' => Importer::dir()]];
+        }
+
         if ($path === '/admin/new' || preg_match('#^/admin/edit/(\d+)$#', $path, $m)) {
             $id = isset($m[1]) ? (int) $m[1] : null;
             $job = $id ? Listings::find($id) : null;
