@@ -13,7 +13,7 @@
 return [
     [
         'id' => 'nenow', 'name' => 'Northeast Now', 'section' => 'northeast', 'type' => 'news', 'jobsOnly' => true,
-        'limit' => 25, 'maxPages' => 5,
+        'limit' => 50, 'maxPages' => 8,
         'feeds' => ['https://nenow.in/category/assam-career/feed'],
         'pages' => ['https://nenow.in/category/assam-career'],
     ],
