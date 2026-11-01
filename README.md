@@ -46,9 +46,9 @@ cd C:\Users\Samsung\Desktop\Projects\Job_Website
 docker compose up -d --build
 docker compose ps            # db, web, scheduler, pgadmin should be running
 ```
-- Website: **http://localhost:8080**
+- Website: **http://localhost:3030**
 - pgAdmin: **http://localhost:5050** (admin@jobportal.local / admin123). Add a server with Host `db`, Port `5432`, User `jobadmin`, Password `ChangeMe_Strong123`.
-- Health check: http://localhost:8080/api/health
+- Health check: http://localhost:3030/api/health
 
 The `app` folder is shared with the containers, so when you edit a PHP file, refresh the browser to see the change.
 
@@ -71,7 +71,7 @@ docker compose exec web php bin/fetch.php nenow      # one source
 docker compose exec web php bin/fetch.php india      # one section
 docker compose logs -f scheduler                     # watch automatic runs
 ```
-Last run per source: http://localhost:8080/api/status
+Last run per source: http://localhost:3030/api/status
 
 **How each run works**
 1. **News sites:** read the RSS feed (e.g. `/feed`). If there is none, scan the listing page for article links and read each new article's title, description, date and image.
@@ -122,7 +122,7 @@ docker exec -it jobportal_db psql -U jobadmin -d jobportal
 
 ## Hosting (VPS, e.g. Ubuntu)
 Install Docker on the server, copy this folder over, set real passwords in `.env`, then run `docker compose up -d --build`.
-Put Nginx or Caddy in front of port 8080 with HTTPS and point your domain to it.
+Put Nginx or Caddy in front of port 3030 with HTTPS and point your domain to it.
 
 **Before going live:**
 - Change `POSTGRES_PASSWORD` and `PGADMIN_PASSWORD`, and set your email in `CRAWLER_USER_AGENT`.

@@ -1,5 +1,5 @@
 <?php
-// Front controller: every request comes here (Apache .htaccess, or `php -S localhost:8080 -t public public/index.php`).
+// Front controller: every request comes here (Apache .htaccess, or `php -S localhost:3030 -t public public/index.php`).
 declare(strict_types=1);
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
