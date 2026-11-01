@@ -128,6 +128,17 @@ Naukri's terms don't allow automated copying, and the site blocks scrapers, so t
 ### Content and permissions
 Show only headlines, short excerpts and links back to the source (as this project does). Check each site's terms. For long-term use, ask the papers for permission or a partnership.
 
+## Updating on your PC
+One command does it all: it gets the latest code from GitHub, restarts Docker, fetches new jobs and opens the site.
+```powershell
+cd C:\Users\Samsung\Desktop\Projects\Job_Website
+.\update.ps1
+```
+If Windows says "running scripts is disabled", run this once and try again:
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
 ## Website URLs
 | URL | Page |
 |---|---|
