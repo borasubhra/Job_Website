@@ -7,10 +7,13 @@
  *             'adzuna' -> official Adzuna API (needs ADZUNA_APP_ID / ADZUNA_APP_KEY in .env)
  *  jobsOnly : true  -> every item is a job post (e.g. a "career" category)
  *             false -> general news; only items matching job keywords are kept
+ *  limit    : how many job posts to collect per run (default MAX_NEW_PER_SOURCE in .env)
+ *  maxPages : how many feed/listing pages to read to reach `limit` (default 5)
  */
 return [
     [
         'id' => 'nenow', 'name' => 'Northeast Now', 'section' => 'northeast', 'type' => 'news', 'jobsOnly' => true,
+        'limit' => 25, 'maxPages' => 5,
         'feeds' => ['https://nenow.in/category/assam-career/feed'],
         'pages' => ['https://nenow.in/category/assam-career'],
     ],

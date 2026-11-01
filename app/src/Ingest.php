@@ -51,7 +51,7 @@ final class Ingest
                 $in = implode(',', array_fill(0, count($items), '?'));
                 $known = array_flip(Db::run("SELECT source_url FROM listings WHERE source_url IN ($in)", array_column($items, 'url'))->fetchAll(\PDO::FETCH_COLUMN));
             }
-            $fresh = array_slice(array_filter($items, fn($i) => !isset($known[$i['url']])), 0, (int) env('MAX_NEW_PER_SOURCE', '40'));
+            $fresh = array_slice(array_filter($items, fn($i) => !isset($known[$i['url']])), 0, NewsFetcher::limit($src));
 
             $insert = Db::pdo()->prepare(
                 'INSERT INTO listings (section, source_id, source_name, title, title_key, summary, source_url, image_url,

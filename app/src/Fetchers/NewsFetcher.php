@@ -13,81 +13,117 @@ final class NewsFetcher
 {
     private const JOB_WORDS = '/\b(recruitment|vacanc(y|ies)|jobs?|career|walk[- ]?in|interview|apply|posts?|hiring|notification|apprentice|bharti|engagement of|openings?)\b/i';
 
-    /** @return list<array<string,mixed>> */
+    /**
+     * Collect up to `limit` job items. Reads feed/listing pages 1, 2, 3 ... (up to `maxPages`)
+     * until enough jobs are found, because most sites show only ~10 posts per page.
+     *
+     * @return list<array<string,mixed>>
+     */
     public function fetch(array $src): array
     {
-        $items = $this->fromFeeds($src) ?? $this->fromPages($src);
-        if (empty($src['jobsOnly'])) {
-            $items = array_filter($items, fn($i) => preg_match(self::JOB_WORDS, $i['title'] . ' ' . $i['summary']));
-        }
+        $limit = self::limit($src);
+        $keep = fn(array $i): bool => $i['title'] !== '' && $i['url'] !== ''
+            && (!empty($src['jobsOnly']) || preg_match(self::JOB_WORDS, $i['title'] . ' ' . $i['summary']));
+
+        $items = $this->fromFeeds($src, $keep, $limit) ?? $this->fromPages($src, $keep, $limit);
         $out = [];
         foreach ($items as $i) {
-            if ($i['title'] !== '' && $i['url'] !== '' && Http::allowed($i['url'])) $out[] = $i;
+            if (Http::allowed($i['url'])) $out[] = $i;
+            if (count($out) >= $limit) break;
         }
         return $out;
     }
 
-    private function fromFeeds(array $src): ?array
+    public static function limit(array $src): int
+    {
+        return max(1, (int) ($src['limit'] ?? env('MAX_NEW_PER_SOURCE', '40')));
+    }
+
+    /** RSS/Atom feed, page by page (WordPress: ?paged=2). Returns null if no feed works. */
+    private function fromFeeds(array $src, callable $keep, int $limit): ?array
     {
         foreach ($src['feeds'] ?? [] as $feedUrl) {
-            try {
-                if (!Http::allowed($feedUrl)) { $this->log($src, "robots.txt disallows $feedUrl"); continue; }
-                $xml = @simplexml_load_string(Http::get($feedUrl)['body'], 'SimpleXMLElement', LIBXML_NOCDATA);
-                if ($xml === false) throw new \RuntimeException('not a valid feed');
-                $items = [];
-                foreach ($xml->channel->item ?? [] as $it) {                          // RSS 2.0
-                    $media = $it->children('http://search.yahoo.com/mrss/');
-                    $items[] = [
-                        'title' => self::clean((string) $it->title),
-                        'url' => trim((string) $it->link),
-                        'summary' => self::clean((string) $it->description),
-                        'published_at' => (string) $it->pubDate ?: null,
-                        'image_url' => (string) ($it->enclosure['url'] ?? '') ?: ((string) ($media->content?->attributes()['url'] ?? '') ?: null),
-                    ];
+            $items = [];
+            for ($page = 1; $page <= ($src['maxPages'] ?? 5); $page++) {
+                $url = $page === 1 ? $feedUrl : $feedUrl . (str_contains($feedUrl, '?') ? '&' : '?') . "paged=$page";
+                try {
+                    if (!Http::allowed($url)) { $this->log($src, "robots.txt disallows $url"); break; }
+                    $added = 0;
+                    foreach ($this->parseFeed(Http::get($url)['body']) as $i) {
+                        if (!isset($items[$i['url']]) && $keep($i)) { $items[$i['url']] = $i; $added++; }
+                    }
+                    $this->log($src, "RSS page $page: $url (+$added, total " . count($items) . ')');
+                    if ($added === 0 || count($items) >= $limit) break;   // no more pages, or enough
+                } catch (\Throwable $e) {
+                    $this->log($src, "RSS failed $url: {$e->getMessage()}");
+                    break;                                                // page 2+ missing is normal
                 }
-                foreach ($xml->entry ?? [] as $it) {                                  // Atom
-                    $items[] = [
-                        'title' => self::clean((string) $it->title),
-                        'url' => (string) ($it->link['href'] ?? ''),
-                        'summary' => self::clean((string) ($it->summary ?: $it->content)),
-                        'published_at' => (string) ($it->published ?: $it->updated) ?: null,
-                        'image_url' => null,
-                    ];
-                }
-                if ($items) { $this->log($src, "RSS ok: $feedUrl (" . count($items) . ' items)'); return $items; }
-            } catch (\Throwable $e) {
-                $this->log($src, "RSS failed $feedUrl: {$e->getMessage()}");
             }
+            if ($items) return array_values($items);
         }
         return null;
     }
 
-    private function fromPages(array $src): array
+    private function parseFeed(string $body): array
     {
-        $links = [];
-        foreach ($src['pages'] ?? [] as $pageUrl) {
-            try {
-                if (!Http::allowed($pageUrl)) { $this->log($src, "robots.txt disallows $pageUrl"); continue; }
-                $res = Http::get($pageUrl);
-                $host = parse_url($res['url'], PHP_URL_HOST);
-                $dom = self::dom($res['body']);
-                foreach ($dom->getElementsByTagName('a') as $a) {
-                    $title = self::clean($a->textContent);
-                    $href = self::absolute($a->getAttribute('href'), $res['url']);
-                    if (!$href || parse_url($href, PHP_URL_HOST) !== $host) continue;
-                    $len = mb_strlen($title);
-                    if ($len < 25 || $len > 250) continue;
-                    $links[$href] ??= $title;
-                }
-                $this->log($src, "page scan: $pageUrl (" . count($links) . ' candidate links)');
-                if ($links) break;
-            } catch (\Throwable $e) {
-                $this->log($src, "page failed $pageUrl: {$e->getMessage()}");
-            }
+        $xml = @simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) throw new \RuntimeException('not a valid feed');
+        $items = [];
+        foreach ($xml->channel->item ?? [] as $it) {                          // RSS 2.0
+            $media = $it->children('http://search.yahoo.com/mrss/');
+            $items[] = [
+                'title' => self::clean((string) $it->title),
+                'url' => trim((string) $it->link),
+                'summary' => self::clean((string) $it->description),
+                'published_at' => (string) $it->pubDate ?: null,
+                'image_url' => (string) ($it->enclosure['url'] ?? '') ?: ((string) ($media->content?->attributes()['url'] ?? '') ?: null),
+            ];
         }
-        $out = [];
-        foreach ($links as $url => $title) $out[] = ['title' => $title, 'url' => $url, 'summary' => '', 'published_at' => null, 'image_url' => null];
-        return $out;
+        foreach ($xml->entry ?? [] as $it) {                                  // Atom
+            $items[] = [
+                'title' => self::clean((string) $it->title),
+                'url' => (string) ($it->link['href'] ?? ''),
+                'summary' => self::clean((string) ($it->summary ?: $it->content)),
+                'published_at' => (string) ($it->published ?: $it->updated) ?: null,
+                'image_url' => null,
+            ];
+        }
+        return $items;
+    }
+
+    /** Fallback: scan listing pages (page 2 = `pagePattern` with {n}, default WordPress ".../page/2"). */
+    private function fromPages(array $src, callable $keep, int $limit): array
+    {
+        foreach ($src['pages'] ?? [] as $idx => $pageUrl) {
+            $items = [];
+            for ($page = 1; $page <= ($src['maxPages'] ?? 5); $page++) {
+                $url = $page === 1 ? $pageUrl
+                    : (isset($src['pagePattern']) && $idx === 0 ? str_replace('{n}', (string) $page, $src['pagePattern'])
+                                                                : rtrim($pageUrl, '/') . "/page/$page");
+                try {
+                    if (!Http::allowed($url)) { $this->log($src, "robots.txt disallows $url"); break; }
+                    $res = Http::get($url);
+                    $host = parse_url($res['url'], PHP_URL_HOST);
+                    $added = 0;
+                    foreach (self::dom($res['body'])->getElementsByTagName('a') as $a) {
+                        $title = self::clean($a->textContent);
+                        $href = self::absolute($a->getAttribute('href'), $res['url']);
+                        if (!$href || parse_url($href, PHP_URL_HOST) !== $host) continue;
+                        $len = mb_strlen($title);
+                        if ($len < 25 || $len > 250 || isset($items[$href])) continue;
+                        $i = ['title' => $title, 'url' => $href, 'summary' => '', 'published_at' => null, 'image_url' => null];
+                        if ($keep($i)) { $items[$href] = $i; $added++; }
+                    }
+                    $this->log($src, "page scan $page: $url (+$added, total " . count($items) . ')');
+                    if ($added === 0 || count($items) >= $limit) break;
+                } catch (\Throwable $e) {
+                    $this->log($src, "page failed $url: {$e->getMessage()}");
+                    break;
+                }
+            }
+            if ($items) return array_values($items);
+        }
+        return [];
     }
 
     /** Fill description / date / image from the article page (only called for new items). */
