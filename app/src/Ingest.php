@@ -5,6 +5,7 @@ namespace App;
 
 use App\Fetchers\AdzunaFetcher;
 use App\Fetchers\NewsFetcher;
+use App\Fetchers\NoticeFetcher;
 
 /** Fetch -> clean -> de-duplicate -> save, for every source. */
 final class Ingest
@@ -27,6 +28,7 @@ final class Ingest
         $results = [];
         foreach ($sources as $src) {
             if ($only && $src['id'] !== $only && $src['section'] !== $only) continue;
+            if (($src['enabled'] ?? true) === false && $only !== $src['id']) continue;   // disabled sources run only when named
             $results[] = self::runSource($src);
         }
         // hide expired posts and anything older than 60 days
@@ -42,7 +44,20 @@ final class Ingest
         $found = 0; $inserted = 0; $error = null;
         try {
             $news = new NewsFetcher();
-            $items = $src['type'] === 'adzuna' ? (new AdzunaFetcher())->fetch($src) : $news->fetch($src);
+            $items = match ($src['type']) {
+                'adzuna'  => (new AdzunaFetcher())->fetch($src),
+                'notices' => (new NoticeFetcher())->fetch($src),
+                default   => $news->fetch($src),
+            };
+            if ($src['type'] === 'notices') {
+                // official notices: name the organisation in the title ("APSC: Advertisement for ...")
+                $org = $src['org'] ?? $src['name'];
+                foreach ($items as &$i) {
+                    $i['organisation'] = $org;
+                    if (stripos($i['title'], $org) === false) $i['title'] = "$org: {$i['title']}";
+                }
+                unset($i);
+            }
             $found = count($items);
 
             // only visit/save URLs we don't have yet
@@ -69,7 +84,7 @@ final class Ingest
                     $item['url'],
                     $item['image_url'] ?? null,
                     mb_substr($item['organisation'] ?? self::findOrg($item['title']) ?? '', 0, 200) ?: null,
-                    $item['location'] ?? ($src['section'] === 'northeast' ? self::findState($text) : null),
+                    $item['location'] ?? ($src['section'] === 'northeast' ? (self::findState($text) ?? $src['location'] ?? null) : null),
                     $item['category'] ?? null,
                     $item['salary_min'] ?? null,
                     $item['salary_max'] ?? null,

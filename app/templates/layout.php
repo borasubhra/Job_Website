@@ -5,6 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= h($pageTitle) ?> – <?= h($site) ?></title>
+<?php if ($section === 'admin'): ?><meta name="robots" content="noindex, nofollow"><?php endif ?>
 <meta name="description" content="Latest jobs in Assam, North East India and across India – updated automatically every day.">
 <link rel="stylesheet" href="/assets/style.css">
 </head>

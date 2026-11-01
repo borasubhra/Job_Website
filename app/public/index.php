@@ -60,6 +60,11 @@ try {
             render('job', ['job' => $job, 'section' => $job['section'], 'pageTitle' => $job['title']]);
             break;
 
+        case $path === '/admin' || str_starts_with($path, '/admin/'):
+            $page = App\Admin::handle($path);
+            if ($page) render($page[0], $page[1] + ['pageTitle' => 'Admin', 'section' => 'admin']);
+            break;
+
         // JSON API (for a future mobile app etc.)
         case $path === '/api/listings':
             json_out(Listings::search(($_GET['section'] ?? '') === 'india' ? 'india' : 'northeast',
