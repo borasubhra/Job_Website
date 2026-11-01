@@ -72,6 +72,17 @@ The `app` folder is shared with the containers, so when you edit a PHP file, ref
 
 Jobs disappear from the site automatically after their last date. When you see a job in a newspaper or e-paper, write the facts in your own words and link to the official notification. Don't copy the paper's text or images.
 
+### Importing a batch of jobs (e.g. from a newspaper you read)
+Jobs can also be added from a JSON file in `app/imports/` (one file per batch, e.g. `2026-11-01-assam-tribune.json`).
+`update.ps1` imports new files automatically. To import by hand, run:
+```powershell
+docker compose exec web php bin/import.php
+```
+- Each file is imported once.
+- The jobs appear under **Added by you** on the admin page, where you can edit or hide them.
+- The file format is described at the top of `app/bin/import.php`.
+- Write the facts in your own words, with how to apply. Never paste the paper's text or images.
+
 ## 4. Automatic job updates
 The **scheduler** container runs `app/bin/scheduler.php` all the time. Settings are in `.env`:
 

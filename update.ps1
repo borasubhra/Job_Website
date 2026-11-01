@@ -38,6 +38,9 @@ Step "Fetching new jobs"
 Start-Sleep -Seconds 5
 docker compose exec -T web php bin/fetch.php
 
+Step "Adding jobs from import files (app\imports)"
+docker compose exec -T web php bin/import.php
+
 $port = (Select-String -Path .env -Pattern '^APP_PORT=(\d+)' -ErrorAction SilentlyContinue).Matches.Groups[1].Value
 if (-not $port) { $port = "3030" }
 Step "Done - opening http://localhost:$port"

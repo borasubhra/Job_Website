@@ -42,12 +42,12 @@ $err = fn($k) => isset($errors[$k]) ? '<span class="field-error">' . h($errors[$
         <input name="category" value="<?= h($data['category']) ?>" maxlength="120" placeholder="e.g. Government, Teaching, Health, Police">
       </label>
 
-      <label>Official link (notification PDF or apply page) * <?= $err('source_url') ?>
-        <input type="url" name="source_url" value="<?= h($data['source_url']) ?>" required placeholder="https://...">
+      <label>Official link (notification PDF or apply page) <?= $err('source_url') ?>
+        <input type="url" name="source_url" value="<?= h($data['source_url']) ?>" placeholder="https://...  (leave empty if there is none)">
       </label>
 
       <label>Short description <?= $err('summary') ?>
-        <textarea name="summary" rows="6" maxlength="1500" placeholder="Number of posts, qualification, age limit, pay, how to apply…"><?= h($data['summary']) ?></textarea>
+        <textarea name="summary" rows="6" maxlength="1500" placeholder="Number of posts, qualification, age limit, pay, how to apply (email / phone / address)…"><?= h($data['summary']) ?></textarea>
       </label>
 
       <label class="check"><input type="checkbox" name="is_active" value="1" <?= $data['is_active'] ? 'checked' : '' ?>> Show on the website</label>

@@ -97,8 +97,8 @@ final class Admin
             $dt = \DateTime::createFromFormat('!Y-m-d', $d['last_date']);
             if (!$dt || $dt->format('Y-m-d') !== $d['last_date']) $e['last_date'] = 'Enter a valid date.';
         }
-        if (!filter_var($d['source_url'], FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $d['source_url']))
-            $e['source_url'] = 'Enter the official link (starting with https://) where people can read the notification or apply.';
+        if ($d['source_url'] !== '' && (!filter_var($d['source_url'], FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $d['source_url'])))
+            $e['source_url'] = 'Enter a full link starting with https:// (or leave it empty and write how to apply in the description).';
         if (mb_strlen($d['summary']) > 1500) $e['summary'] = 'Keep the description under 1500 characters.';
         return [$d, $e];
     }

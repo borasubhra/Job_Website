@@ -36,3 +36,10 @@ CREATE TABLE IF NOT EXISTS fetch_runs (
   inserted    INT DEFAULT 0,
   error       TEXT
 );
+
+-- Job files imported with bin/import.php (each file is imported once)
+CREATE TABLE IF NOT EXISTS imports (
+  file        VARCHAR(200) PRIMARY KEY,
+  imported_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  jobs_added  INT          NOT NULL DEFAULT 0
+);
